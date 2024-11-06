@@ -20,6 +20,7 @@ werkzeug = "*"
 sqlalchemy-serializer = "*"
 flask-migrate = "*"
 alembic = "*"
+python-dotenv = "*"
 
 [dev-packages]
 
