@@ -60,4 +60,4 @@ jobs:
         env:
           DATABASE_URL: ${{env.DATABASE_URL}}
         run:
-          flask db upgrade
+          flask db upgrade head
