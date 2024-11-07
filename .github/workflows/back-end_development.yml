@@ -40,11 +40,21 @@ jobs:
         uses: actions/setup-python@v3
         with:
           python-version: '3.12.5'
-          
-      - name: Install dependencies
-        run:
+
+      # Step to upgrade pip
+      - name: Upgrade pip
+        run: 
           python -m pip install --upgrade pip
+
+      # Step to install dependencies
+      - name: Install dependencies
+        run: 
           pip install -r requirements.txt
+
+      # Step to load environment variables
+      - name: Load .env file
+        run: |
+          cat ./server/.env >> $GITHUB_ENV
 
       - name: Run migrations
         env:
