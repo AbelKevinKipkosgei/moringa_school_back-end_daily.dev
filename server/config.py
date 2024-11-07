@@ -9,9 +9,9 @@ from sqlalchemy import MetaData
 
 load_dotenv()
 
-app = Flask(
-    __name__
-)
+# Initialize Flask app
+app = Flask(__name__)
+
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///urban_mart.db'
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -27,11 +27,11 @@ db = SQLAlchemy(metadata=metadata)
 # Setup Flask-Migrate for database migrations
 migrate = Migrate(app,db)
 
-# Initialize SQLAlchemy with app
-db.init_app(app)
-
 # Initialize Flask-Restful API
 api = Api(app)
 
 # Enable CORS globally
 CORS(app, supports_credentials=True)
+
+# Initialize SQLAlchemy with app
+db.init_app(app)
