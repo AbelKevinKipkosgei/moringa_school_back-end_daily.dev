@@ -33,7 +33,7 @@ jobs:
       # Set the DATABASE_URL
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/daily_dev_test_db
       #Set Flask App in the right directory
-      FLASK_APP: server.app
+      FLASK_APP: app
       
     steps:
       - name: Checkout repository
