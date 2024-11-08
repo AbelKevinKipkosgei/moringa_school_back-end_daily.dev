@@ -9,11 +9,51 @@ on:
       - development
 
 jobs:
-  build:
+  build-macOS:
     runs-on: ${{matrix.os}}
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-latest, macos-latest, macos-13, macos-12]
+        os: [macos-latest, macos-13, macos-12]
+
+    env:
+      # Set the DATABASE_URL
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/daily_dev_test_db
+      #Set Flask App in the right directory
+      FLASK_APP: app
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python 3.12.5
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.12.5'
+
+      # Step to upgrade pip
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      # Step to install dependencies
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Step to load environment variables
+      - name: Load .env file
+        run: cat ./server/.env >> $GITHUB_ENV
+
+      - name: Run migrations
+        working-directory: ./server
+        env:
+          DATABASE_URL: ${{env.DATABASE_URL}}
+        run:
+          flask db upgrade head
+      
+  build-linux:
+    runs-on: ${{matrix.os}}
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-latest]
       
     env:
       # Set the DATABASE_URL
@@ -24,7 +64,6 @@ jobs:
     services:
       # Only start PostgreSQL service if the runner OS is Linux
       postgres:
-        if: runner.os == 'Linux'
         image: postgres:16
         env:
           POSTGRES_USER: postgres
@@ -66,3 +105,4 @@ jobs:
           DATABASE_URL: ${{env.DATABASE_URL}}
         run:
           flask db upgrade head
+  
