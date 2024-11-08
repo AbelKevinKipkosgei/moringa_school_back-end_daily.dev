@@ -9,11 +9,34 @@ on:
       - development
 
 jobs:
-  build:
+  build-macOS:
     runs-on: ${{matrix.os}}
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-latest, macos-latest, macos-13, macos-12]
+        os: [macos-latest, macos-13, macos-12]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python 3.12.5
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.12.5'
+
+      # Step to upgrade pip
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      # Step to install dependencies
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+  build-linux:
+    runs-on: ${{matrix.os}}
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-latest]
       
     env:
       # Set the DATABASE_URL
@@ -24,7 +47,6 @@ jobs:
     services:
       # Only start PostgreSQL service if the runner OS is Linux
       postgres:
-        if: runner.os == 'Linux'
         image: postgres:16
         env:
           POSTGRES_USER: postgres
@@ -59,8 +81,8 @@ jobs:
       - name: Load .env file
         run: cat ./server/.env >> $GITHUB_ENV
 
+      # Step to run migrations
       - name: Run migrations
-        if: runner.os == 'Linux'
         working-directory: ./server
         env:
           DATABASE_URL: ${{env.DATABASE_URL}}
