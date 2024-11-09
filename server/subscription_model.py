@@ -14,3 +14,9 @@ class Subscription(db.Model, SerializerMixin):
 
     # Relationship mapping subscription to category
     category = db.relationship('Category', back_populates='subscriptions')
+
+    # Serialization rules
+    serialize_rules = ('-user.subscriptions', '-category.subscriptions')
+
+    def __repr__(self):
+        return f'Subscription ID: {self.user_id}, User ID: {self.user_id}, Category ID: {self.category_id}'
