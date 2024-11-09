@@ -12,7 +12,7 @@ class Post(db.Model, SerializerMixin):
     body = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=db.func.now())
     updated_at = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
-    approved = db.Column(Boolean, default=False)
+    approved = db.Column(db.Boolean, default=False)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     category_id = db.Column(db.Integer, db.ForeignKey("categories.id"))
     likes_count = db.Column(db.Integer, nullable=False, default=0)
