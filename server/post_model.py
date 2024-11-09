@@ -17,7 +17,7 @@ class Post(db.Model, SerializerMixin):
     category_id = db.Column(db.Integer, db.ForeignKey("categories.id"))
     likes_count = db.Column(db.Integer, nullable=False, default=0)
 
-    # Relationship mapping post to author
+    # Relationship mapping post to user
     user = db.relationship("User", back_populates="posts")
 
     # Relationship mapping post to category
@@ -25,6 +25,9 @@ class Post(db.Model, SerializerMixin):
 
     # Relationship mapping post to likes
     likes = db.relationship("Like", back_populates="posts")
+
+    # Serialization rules
+    serialize_rules = ("-user.posts", "-category.posts", "-likes.posts")
 
     def __repr__(self):
         return f"Post ID: {self.id}, Title: {self.title}, Post_type: {self.post_type}, Likes_count{self.likes_count}"
