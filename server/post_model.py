@@ -18,11 +18,13 @@ class Post(db.Model, SerializerMixin):
     likes_count = db.Column(db.Integer, nullable=False, default=0)
 
     # Relationship mapping post to author
-    user = db.relationship("user", back_populates="posts")
+    user = db.relationship("User", back_populates="posts")
 
     # Relationship mapping post to category
     category = db.relationship("Category", back_populates="posts")
-    
-    # Relationship mapping post to likes
-    likes = db.relationship('Like', back_populates='post', cascade='all, delete-orphan')
 
+    # Relationship mapping post to likes
+    likes = db.relationship("Like", back_populates="posts")
+
+    def __repr__(self):
+        return f"Post ID: {self.id}, Title: {self.title}, Post_type: {self.post_type}, Likes_count{self.likes_count}"
