@@ -8,7 +8,8 @@ from flask_login import (
 )
 from flask_restful import Resource
 from config import app, api
-from models import User
+from user_model import User
+from subscription_model import Subscription
 
 
 # Home Resource
