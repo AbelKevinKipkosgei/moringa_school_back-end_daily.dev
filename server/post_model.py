@@ -12,13 +12,19 @@ class Post(db.Model, SerializerMixin):
     body = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=db.func.now())
     updated_at = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
-    approved = db.Column(Boolean, default=False)
+    approved = db.Column(db.Boolean, default=False)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     category_id = db.Column(db.Integer, db.ForeignKey("categories.id"))
     likes_count = db.Column(db.Integer, nullable=False, default=0)
 
     # Relationship mapping post to author
-    user = db.relationship("user", back_populates="posts")
+    user = db.relationship("User", back_populates="posts")
 
     # Relationship mapping post to category
     category = db.relationship("Category", back_populates="posts")
+
+    # Relationship mapping post to likes
+    likes = db.relationship("Like", back_populates="posts")
+
+    def __repr__(self):
+        return f"Post ID: {self.id}, Title: {self.title}, Post_type: {self.post_type}, Likes_count{self.likes_count}"
