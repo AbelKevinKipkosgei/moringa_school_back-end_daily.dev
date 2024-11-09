@@ -23,7 +23,7 @@ class Category(db.Model, SerializerMixin):
     #Association proxy
     subscribers = association_proxy('subscriptions', 'user', creator = lambda user_obj: Subscription(user = user_obj, subscribed_at = db.func.now()))
 
-    serialize_rules = ('contents.category', 'subscriptions.category')
+    serialize_rules = ('-contents.category', '-subscriptions.category')
 
     def __repr__(self):
         return f"<Category(id={self.id}, name={self.name})>"
