@@ -22,3 +22,7 @@ class Post(db.Model, SerializerMixin):
 
     # Relationship mapping post to category
     category = db.relationship("Category", back_populates="posts")
+    
+    # Relationship mapping post to likes
+    likes = db.relationship('Like', back_populates='post', cascade='all, delete-orphan')
+
