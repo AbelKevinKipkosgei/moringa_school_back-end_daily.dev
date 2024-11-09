@@ -37,7 +37,7 @@ class User (db.Model, SerializerMixin):
     subscribed_categories = association_proxy('subscriptions', 'category', creator=lambda category_obj: Subscription(category=category_obj))
 
     # Serialization rules
-    serialize_rules = ('posts.user', 'comments.user', 'likes.user','subscriptions.user', 'notifications.user')
+    serialize_rules = ('-posts.user', '-comments.user', '-likes.user','-subscriptions.user', '-notifications.user')
 
     # Password encryption
     @hybrid_property
