@@ -4,6 +4,7 @@ from config import db
 
 class Subscription(db.Model, SerializerMixin):
     __tablename__ = 'subscriptions'
+    
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id'))
