@@ -8,6 +8,7 @@ from subscription_model import Subscription
 
 class User (db.Model, SerializerMixin):
     __tablename__ = 'users'
+
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String, nullable=False)
     email = db.Column(db.String, nullable=False, unique=True)
