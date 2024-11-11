@@ -6,10 +6,10 @@ from models import Subscription
 def seed_subscriptions():
     with app.app_context():
         try:
-            # Drop existing subscriptions if any
+            # Drop existing subscriptions
             drop_subscriptions()
 
-            # Define some subscription entries
+            # subscription entries
             subscriptions = [
                 Subscription(user_id=1, category_id=1, subscribed_at=datetime.now()),
                 Subscription(user_id=1, category_id=2, subscribed_at=datetime.now()),
