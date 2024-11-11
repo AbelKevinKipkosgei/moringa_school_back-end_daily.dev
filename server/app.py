@@ -7,16 +7,14 @@ from flask_login import (
     login_required,
 )
 from flask_restful import Resource
-from config import app, api
-from models import (
-    Category,
-    Comment,
-    Like,
-    Notification,
-    Post,
-    Subscription,
-    User
-)
+from config import app, api, db
+from server.user_model import User
+from post_model import Post
+from notification_model import Notification
+from comment_model import Comment
+from like_model import Like
+from subscription_model import Subscription
+from category_model import Category
 
 # Home Resource
 class HomeResource(Resource):
@@ -27,4 +25,4 @@ class HomeResource(Resource):
 api.add_resource(HomeResource, "/api")
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(port=5555, debug=True)
