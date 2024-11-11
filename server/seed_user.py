@@ -4,9 +4,7 @@ import cloudinary.uploader
 from cloudinary.utils import cloudinary_url
 from dotenv import load_dotenv
 from config import db, app
-from model_imports import get_models
-
-User = get_models()
+from models import User
 
 # Load environment variables from .env file
 load_dotenv()
