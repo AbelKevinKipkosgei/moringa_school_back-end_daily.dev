@@ -5,23 +5,21 @@ from config import db, app
 from models import User, Post, Like, Comment, Subscription, Notification, Category
 
 
-def clear_user_table():
+def clear_users_table():
     try:
         db.session.query(User).delete()
         # Reset the ID sequence to start from 1
         db.session.execute(text("ALTER SEQUENCE users_id_seq RESTART WITH 1"))
         db.session.commit()
-
-        db.session.commit()
         print("User table successfully cleared!!")
     except Exception as e:
         db.session.rollback()
-        print(f"Error clearing user table: {e}")
+        print(f"Error clearing users table: {e}")
 
-def seed_user_table():
+def seed_users_table():
     try:
         # Clear table before seeding
-        clear_user_table()
+        clear_users_table()
 
         # Configuration
         cloudinary.config( 
@@ -140,4 +138,4 @@ def seed_user_table():
 
 if __name__ == '__main__':
     with app.app_context():
-        seed_user_table()
+        seed_users_table()
