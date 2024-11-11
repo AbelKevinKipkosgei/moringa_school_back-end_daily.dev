@@ -8,13 +8,7 @@ from flask_login import (
 )
 from flask_restful import Resource
 from config import app, api, db
-from user_model import User
-from post_model import Post
-from notification_model import Notification
-from comment_model import Comment
-from like_model import Like
-from subscription_model import Subscription
-from category_model import Category
+from models import User, Post, Comment, Subscription, Like, Notification, Category
 
 # Home Resource
 class HomeResource(Resource):
