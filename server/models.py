@@ -169,13 +169,13 @@ class Post(db.Model, SerializerMixin):
     category = db.relationship("Category", back_populates="posts")
 
     # Relationship mapping post to likes
-    likes = db.relationship("Like", back_populates="posts", cascade='all, delete-orphan')
+    likes = db.relationship("Like", back_populates="post", cascade='all, delete-orphan')
 
     # Relationship mapping post to comments
-    comments = db.relationship("Comment", back_populates="posts", cascade='all, delete-orphan')
+    comments = db.relationship("Comment", back_populates="post", cascade='all, delete-orphan')
 
     # Serialization rules
-    serialize_rules = ("-user.posts", "-category.posts", "-likes.posts", "-comments.posts")
+    serialize_rules = ("-user.posts", "-category.posts", "-likes.post", "-comments.post")
 
     def __repr__(self):
         return f"Post ID: {self.id}, Title: {self.title}, Post_type: {self.post_type}, Likes_count{self.likes_count}"

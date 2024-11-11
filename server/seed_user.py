@@ -1,16 +1,16 @@
-import os
 import cloudinary
 import cloudinary.uploader
-from cloudinary.utils import cloudinary_url
-from dotenv import load_dotenv
+from sqlalchemy import text
 from config import db, app
-from models import User
+from models import User, Post, Like, Comment, Subscription, Notification, Category
 
-# Load environment variables from .env file
-load_dotenv()
 
 def clear_user_table():
     db.session.query(User).delete()
+    # Reset the ID sequence to start from 1
+    db.session.execute(text("ALTER SEQUENCE users_id_seq RESTART WITH 1"))
+    db.session.commit()
+
     db.session.commit()
     print("User table cleared")
 
@@ -18,10 +18,12 @@ def seed_user_table():
     # Clear table before seeding
     clear_user_table()
 
-    # Configuration       
+    # Configuration
     cloudinary.config( 
-        cloudinary_url = os.getenv("CLOUDINARY_URL"),
-        secure=True
+    cloud_name = "dgfolnzcl", 
+    api_key = "325447839224753", 
+    api_secret = "U64bWoq9hlMWmKhJSkHOx98OAVk",
+    secure=True
     )
 
     # List of users to seed
@@ -31,7 +33,7 @@ def seed_user_table():
             'email': 'abelkevinkipkosgei@gmail.com',
             'password': 'abelsoi254',
             'role': 'admin',
-            'profile_pic_url': 'https://photos.google.com/archive/photo/AF1QipOCd93o3H9N4H56E0hAXXV4YN-za47XwA1QhJ9y',
+            'profile_pic_url': 'https://cdn.pixabay.com/photo/2020/01/07/23/01/sketch-4748895_1280.jpg',
             'bio': 'Cybersecurity Enthusiast and Tech savvy'
         },
         {
@@ -105,14 +107,16 @@ def seed_user_table():
         print(f"Uploaded Image URL for {user_data['username']}: {image_url}")
 
         # Create a user with the uploaded image
-        new_user =  User(
+        new_user = User(
             username=user_data['username'],
             email=user_data['email'],
-            password=user_data['password'],
             role=user_data['role'],
             profile_pic_url=image_url,
             bio=user_data['bio']
         )
+
+        # Hash password
+        new_user.password=user_data['password']
 
         # Add new user to the session
         db.session.add(new_user)
@@ -121,7 +125,6 @@ def seed_user_table():
     db.session.commit()
     print(f'Users successfully seeded!!')
 
-# Run the seed function within the app context
 if __name__ == '__main__':
     with app.app_context():
         seed_user_table()
