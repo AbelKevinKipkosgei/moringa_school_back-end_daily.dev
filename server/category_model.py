@@ -1,9 +1,7 @@
-from datetime import datetime
-from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy_serializer import SerializerMixin
 from sqlalchemy.ext.associationproxy import association_proxy
 from config import db
-from .subscription_model import Subscription
+from model_imports import Subscription
 
 class Category(db.Model, SerializerMixin):
     __tablename__ = 'categories'
@@ -13,7 +11,7 @@ class Category(db.Model, SerializerMixin):
     description = db.Column(db.Text, nullable=True)
     subscribed_at = db.Column(db.DateTime, default = db.func.now())
 
-    # Relationship mapping category to content
+    # Relationship mapping category to posts
     posts = db.relationship('Content', back_populates='category')
 
     # Relationship mapping category to subscription

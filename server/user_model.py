@@ -4,7 +4,9 @@ from sqlalchemy_serializer import SerializerMixin
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.associationproxy import association_proxy
 from config import db
-from .subscription_model import Subscription
+from model_imports import get_models
+
+Subscription = get_models()
 
 class User (db.Model, SerializerMixin):
     __tablename__ = 'users'

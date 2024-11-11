@@ -8,7 +8,7 @@ from flask_login import (
 )
 from flask_restful import Resource
 from config import app, api, db
-from server.user_model import User
+from user_model import User
 from post_model import Post
 from notification_model import Notification
 from comment_model import Comment
