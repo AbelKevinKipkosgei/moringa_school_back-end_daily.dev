@@ -25,7 +25,7 @@ def seed_comments():
 
                 # Parent comments for post 2
                 Comment(post_id=2, user_id=2, body="This post really opened my eyes!", created_at=datetime.now()),
-                Comment(post_id=2, user_id=3, body="The examples are really easy to follow.", created_at=datetime.now()),
+                Comment(post_id=2, user_id=7, body="The examples are really easy to follow.", created_at=datetime.now()),
                 Comment(post_id=2, user_id=4, body="Can you clarify a point from this post?", created_at=datetime.now()),
 
                 # Replies to comments on post 2
@@ -43,7 +43,7 @@ def seed_comments():
 
                 # Parent comments for post 4
                 Comment(post_id=4, user_id=1, body="This post really made me think.", created_at=datetime.now()),
-                Comment(post_id=4, user_id=2, body="Interesting perspective, I had not considered that.", created_at=datetime.now()),
+                Comment(post_id=4, user_id=7, body="Interesting perspective, I had not considered that.", created_at=datetime.now()),
                 Comment(post_id=4, user_id=3, body="This provides a fresh angle on the topic.", created_at=datetime.now()),
 
                 # Replies to comments on post 4
