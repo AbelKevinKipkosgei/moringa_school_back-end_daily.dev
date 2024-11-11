@@ -1,14 +1,20 @@
 from datetime import datetime
+from sqlalchemy import text
 from models import Comment
-from config import app,db,api
-
+from config import app, db
 
 # Function to seed comments
 def seed_comments():
-    with app.app_context():  
+    with app.app_context():
         try:
-            # Drop existing comments
-            drop_comments()
+            # Clear existing comments
+            db.session.query(Comment).delete()
+            db.session.commit()
+            print("Comment table cleared.")
+
+            # Reset the ID sequence to start from 1
+            db.session.execute(text("ALTER SEQUENCE comments_id_seq RESTART WITH 1"))
+            db.session.commit()
 
             # Create new comments
             comments = [
@@ -80,17 +86,6 @@ def seed_comments():
             # Rollback if any error occurs
             db.session.rollback()
             print("Failed to seed comments:", str(e))
-
-# Function to drop all comments
-def drop_comments():
-    try:
-        # Delete all comments in the table
-        db.session.query(Comment).delete()
-        db.session.commit()
-        print("Dropped all comments successfully.")
-    except Exception as e:
-        db.session.rollback()
-        print("Failed to drop comments:", str(e))
 
 # Run the seed function
 if __name__ == "__main__":
