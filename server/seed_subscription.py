@@ -1,4 +1,5 @@
 from datetime import datetime
+from sqlalchemy import text
 from config import app, db
 from models import Subscription
 
@@ -6,10 +7,16 @@ from models import Subscription
 def seed_subscriptions():
     with app.app_context():
         try:
-            # Drop existing subscriptions
-            drop_subscriptions()
+            # Clear existing subscriptions
+            db.session.query(Subscription).delete()
+            db.session.commit()
+            print("Subscription table cleared.")
 
-            # subscription entries
+            # Reset the ID sequence to start from 1 for subscriptions
+            db.session.execute(text("ALTER SEQUENCE subscriptions_id_seq RESTART WITH 1"))
+            db.session.commit()
+
+            # Subscription entries
             subscriptions = [
                 Subscription(user_id=1, category_id=1, subscribed_at=datetime.now()),
                 Subscription(user_id=1, category_id=2, subscribed_at=datetime.now()),
@@ -32,20 +39,9 @@ def seed_subscriptions():
             print("Seeded subscriptions successfully.")
 
         except Exception as e:
-            # if any error occurs
+            # Rollback if any error occurs
             db.session.rollback()
             print("Failed to seed subscriptions:", str(e))
-
-# Function to drop all subscriptions
-def drop_subscriptions():
-    try:
-        # Delete all subscriptions in the table
-        db.session.query(Subscription).delete()
-        db.session.commit()
-        print("Dropped all subscriptions successfully.")
-    except Exception as e:
-        db.session.rollback()
-        print("Failed to drop subscriptions:", str(e))
 
 # Run the seed function
 if __name__ == "__main__":
