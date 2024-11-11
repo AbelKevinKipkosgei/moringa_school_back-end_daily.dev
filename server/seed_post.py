@@ -21,24 +21,24 @@ def seed_posts():
                 # Post 1
                 Post(
                     title="Introduction to Python",
-                    post_type="tutorial",
+                    post_type="video",
                     body="Learn the basics of Python programming.",
                     created_at=datetime.now(),
                     updated_at=datetime.now(),
                     approved=True,
-                    author_id=1,
+                    user_id=1,
                     category_id=1,
                     likes_count=10
                 ),
                 # Post 2
                 Post(
                     title="Understanding SQLAlchemy ORM",
-                    post_type="tutorial",
+                    post_type="audio",
                     body="Deep dive into SQLAlchemy ORM for database management.",
                     created_at=datetime.now(),
                     updated_at=datetime.now(),
                     approved=True,
-                    author_id=2,
+                    user_id=2,
                     category_id=2,
                     likes_count=15
                 ),
@@ -50,31 +50,31 @@ def seed_posts():
                     created_at=datetime.now(),
                     updated_at=datetime.now(),
                     approved=True,
-                    author_id=3,
+                    user_id=3,
                     category_id=3,
                     likes_count=25
                 ),
                 # Post 4
                 Post(
                     title="Setting Up Flask Applications",
-                    post_type="guide",
+                    post_type="audio",
                     body="Step-by-step guide to setting up Flask applications.",
                     created_at=datetime.now(),
                     updated_at=datetime.now(),
                     approved=False,
-                    author_id=4,
+                    user_id=4,
                     category_id=1,
                     likes_count=5
                 ),
                 #  Post 5
                 Post(
                     title="Advanced CSS Techniques",
-                    post_type="tutorial",
+                    post_type="video",
                     body="Master advanced CSS techniques for responsive design.",
                     created_at=datetime.now(),
                     updated_at=datetime.now(),
                     approved=True,
-                    author_id=5,
+                    user_id=5,
                     category_id=4,
                     likes_count=8
                 ),
@@ -86,7 +86,7 @@ def seed_posts():
                     created_at=datetime.now(),
                     updated_at=datetime.now(),
                     approved=True,
-                    author_id=6,
+                    user_id=6,
                     category_id=3,
                     likes_count=30
                 )
@@ -107,4 +107,5 @@ def seed_posts():
 
 # Run the seed function
 if __name__ == "__main__":
-    seed_posts()
+     with app.app_context():
+      seed_posts()
