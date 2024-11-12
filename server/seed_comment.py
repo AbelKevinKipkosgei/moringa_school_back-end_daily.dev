@@ -3,19 +3,21 @@ from sqlalchemy import text
 from models import Comment
 from config import app, db
 
+def clear_comments_table():
+    # Clear existing comments
+    db.session.query(Comment).delete()
+    db.session.commit()
+    print("Comments table cleared.")
+
+    # Reset the ID sequence to start from 1
+    db.session.execute(text("ALTER SEQUENCE comments_id_seq RESTART WITH 1"))
+    db.session.commit()
+
 # Function to seed comments
-def seed_comments():
+def seed_comments_table():
     with app.app_context():
         try:
-            # Clear existing comments
-            db.session.query(Comment).delete()
-            db.session.commit()
-            print("Comment table cleared.")
-
-            # Reset the ID sequence to start from 1
-            db.session.execute(text("ALTER SEQUENCE comments_id_seq RESTART WITH 1"))
-            db.session.commit()
-
+            # clear_comments_table()
             # Create new comments
             comments = [
                 # Parent comments for post 1
@@ -85,8 +87,8 @@ def seed_comments():
         except Exception as e:
             # Rollback if any error occurs
             db.session.rollback()
-            print("Failed to seed comments:", str(e))
+            print("Error seeding comments:", str(e))
 
 # Run the seed function
 if __name__ == "__main__":
-    seed_comments()
+    seed_comments_table()
