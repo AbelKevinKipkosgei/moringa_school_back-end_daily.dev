@@ -8,6 +8,7 @@ class HomeResource(Resource):
     def get(self):
         return make_response(jsonify({"message": "Welcome to the API"}), 200)
 
+
 api.add_resource(HomeResource, "/api")
 
 if __name__ == "__main__":
