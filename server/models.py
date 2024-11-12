@@ -106,10 +106,10 @@ class Category(db.Model, SerializerMixin):
     subscribed_at = db.Column(db.DateTime, default = db.func.now())
 
     # Relationship mapping category to posts
-    posts = db.relationship('Post', back_populates='category')
+    posts = db.relationship('Post', back_populates='category', cascade='all, delete')
 
     # Relationship mapping category to subscription
-    subscriptions = db.relationship('Subscription', back_populates='category')
+    subscriptions = db.relationship('Subscription', back_populates='category', cascade='all, delete')
 
     # Association proxy
     subscribers = association_proxy('subscriptions', 'user', creator = lambda user_obj: Subscription(user = user_obj, subscribed_at = db.func.now()))
@@ -154,6 +154,7 @@ class Post(db.Model, SerializerMixin):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String, nullable=False)
     post_type = db.Column(db.String, nullable=False)
+    thumbnail_url = db.Column(db.Text, nullable=False)
     body = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=db.func.now())
     updated_at = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
