@@ -37,7 +37,7 @@ class User (db.Model, SerializerMixin):
     subscribed_categories = association_proxy('subscriptions', 'category', creator=lambda category_obj: Subscription(category=category_obj))
 
     # Serialization rules
-    serialize_rules = ('-posts.user', '-comments.user', '-likes.user','-subscriptions.user', '-notifications.user')
+    serialize_rules = ('-posts.user', '-comments.user', '-likes.user','-subscriptions', '-notifications.user', '-subscribed_categories')
 
     # Password encryption
     @hybrid_property
@@ -115,7 +115,7 @@ class Category(db.Model, SerializerMixin):
     subscribers = association_proxy('subscriptions', 'user', creator = lambda user_obj: Subscription(user = user_obj, subscribed_at = db.func.now()))
 
     # Serialization rules
-    serialize_rules = ('-posts.category', '-subscriptions.category')
+    serialize_rules = ('-posts.category', '-subscriptions')
 
     def __repr__(self):
         return f"<Category(id={self.id}, name={self.name})>"
