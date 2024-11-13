@@ -6,29 +6,35 @@ from flask_migrate import Migrate
 from flask_restful import Api
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import MetaData
+from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
+
 
 load_dotenv()
 
 # Initialize Flask app
 app = Flask(__name__)
+app.config["JWT_SECRET_KEY"] = "ZG0K42kKHa6gNB4BTDJ00-CSpIgdcI-irK2AMLpFfL4"
 
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///urban_mart.db'
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.json.compact = False
 
-metadata = MetaData(naming_convention={
-    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
-})
+metadata = MetaData(
+    naming_convention={
+        "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    }
+)
 
 # Initialize SQLAlchemy with custom metadata
 db = SQLAlchemy(metadata=metadata)
 
 # Setup Flask-Migrate for database migrations
-migrate = Migrate(app,db)
+migrate = Migrate(app, db)
 
 # Initialize Flask-Restful API
 api = Api(app)
+jwt = JWTManager(app)
 
 # Enable CORS globally
 CORS(app, supports_credentials=True)
