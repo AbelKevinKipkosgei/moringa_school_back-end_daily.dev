@@ -13,7 +13,7 @@ class HomeResource(Resource):
 class AdminAllUsersResource(Resource):
     def get(self):
         users = User.query.all()
-        users_data = [{"id": user.id, "username": user.username, "email": user.email, "role": user.role, "active": user.active} for user in users]
+        users_data = [{"id": user.id, "username": user.username, "email": user.email, "role": user.role} for user in users]
         return make_response(jsonify(users_data), 200)
 
 
@@ -80,3 +80,4 @@ api.add_resource(AdminDeletePostResource, "/api/admin/deletepost")
 if __name__ == "__main__":
     app.run(port=5555, debug=True)
 
+#removed active attribute in all users route
