@@ -15,6 +15,7 @@ class User (db.Model, SerializerMixin):
     role = db.Column(db.String, nullable=False, default='user')
     profile_pic_url = db.Column(db.Text, nullable=True)
     bio = db.Column(db.Text, nullable=True)
+    activated = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=db.func.now())
     updated_at = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
 
