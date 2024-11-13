@@ -48,15 +48,15 @@ class FlagPost(Resource):
     def post(self, post_id):
         post = Post.query.get(post_id)
         if not post:
-            return make_response(jsonify({"error": "Post not found"}), 404)
+            return make_response(({"error": "Post not found"}), 404)
 
-        data = request.json
+        data = request.get_json(silent=True)
         post.flagged = True
 
         # Commit changes to the database
         db.session.commit()
 
-        return jsonify({
+        return ({
             "message": "Post flagged",
         }), 200
 class EditPost(Resource):
