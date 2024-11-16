@@ -1,7 +1,7 @@
 from datetime import datetime
 from sqlalchemy import text
 from config import app, db
-from models import Notification
+from models import Notification, User
 
 
 def clear_notifications_table():
@@ -18,16 +18,27 @@ def seed_notifications_table():
     with app.app_context():
         try:
             # clear_notifications_table()
+
+            # Fetch users from the database
+            users =  User.query.all()
+
+            if not users:
+                print("No users found in the database.")
+                return
+            
             # Sample notification entries
-            notifications = [
-                Notification(user_id=1, message="Welcome to the platform!", link="/welcome"),
-                Notification(user_id=2, message="Your post has received a new comment.", link="/posts"),
-                Notification(user_id=3, message="New subscription!", link="/subscriptions"),
-                Notification(user_id=4, message="New article available in your category!", link="/categories"),
-                Notification(user_id=5, message="Your post received a like!", link="/posts"),
-                Notification(user_id=6, message="Removed like", link="/likes"),
-                Notification(user_id=7, message="New post!", link="/posts"),
-            ]
+            notifications = []
+
+            for user in users:
+                # Create a notification for each user
+                notification_for_user = [
+                    Notification(user_id=user.id, message=f"Welcome to the platform, {user.username}!", link="/welcome"),
+                    Notification(user_id=user.id, message=f"You have a new follower, {user.username}!", link="/followers"),
+                    Notification(user_id=user.id, message=f"New comment on your post, {user.username}!", link="/comments"),
+                    Notification(user_id=user.id, message=f"Your post has been approved, {user.username}!", link="/posts"),
+                    Notification(user_id=user.id, message=f"New article available in your category, {user.username}!", link="/categories")
+                ]
+                notifications.extend(notification_for_user)
 
               # Add each notification to the session
             for notification in notifications:
