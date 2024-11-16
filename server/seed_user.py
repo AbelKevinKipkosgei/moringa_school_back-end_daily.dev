@@ -63,7 +63,7 @@ def seed_users_table():
                     'username': 'john_doe',
                     'email': 'johndoe@gmail.com',
                     'password': 'johnnyboy254',
-                    'role': 'tech writer',
+                    'role': 'techwriter',
                     'profile_pic_url': 'https://cdn.pixabay.com/photo/2018/10/15/16/16/man-3749344_1280.jpg',
                     'bio': 'Tech writer and enthusiast',
                     'categories': [fullstack]
@@ -72,7 +72,7 @@ def seed_users_table():
                     'username': 'james_bond',
                     'email': 'jamesbond@gmail.com',
                     'password': 'bond007',
-                    'role': 'tech writer',
+                    'role': 'techwriter',
                     'profile_pic_url': 'https://cdn.pixabay.com/photo/2016/11/16/19/27/daniel-1829795_1280.jpg',
                     'bio': 'Call me bond',
                     'categories': [fullstack, backend, devops]
