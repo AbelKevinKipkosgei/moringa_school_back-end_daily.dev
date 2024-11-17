@@ -11,6 +11,8 @@ from flask_jwt_extended import JWTManager, create_access_token, jwt_required, ge
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
+from flask_redis import FlaskRedis
+import redis
 
 load_dotenv()
 
@@ -23,8 +25,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(minutes=120)
 app.config['JWT_REFRESH_TOKEN_EXPIRES'] =  timedelta(days=30)
 app.config['BLACKLIST'] = set()
-app.config['JWT_SECRET_KEY'] = '44f5a389d54e02e21581ce867d3e630265992562c678367237b7a23f42bfa7cecfa40ea77329dbeb14fb8b195cfa1a8b64e22794acae07ddeb78a55ff3d1719b20e3c4760f63250fc49c30f75298e6e462cd877c7445574569881f1d89bee9589a81773a62621378d63b505514d10e8b5216e5ec7bdcf3a1644b2fe95a69d7823f99c78b93339ec015a812b2af18944a862be3847251debd2ce12aef40dda0fce6c9f45dbe612e05ce28655073397c8c63b18bdd4c98d4d8191551f7703a435e8db12af96bd7d94d5619e39523a8ea04b3827caaa3dc1a520ea805bced27fc9d73989cc94c03004859405601b7ffbdb0cbf9ffcd37386b63cf71e4cd5e29ecc1'
-app.json.compact = False
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
+app.config['REDIS_URL'] = os.getenv('REDIS_URL')
 
 metadata = MetaData(naming_convention={
     "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
@@ -55,9 +57,23 @@ cloudinary.config(
     api_secret = os.getenv('CLOUDINARY_API_SECRET')
 )
 
+# Setup Flask-Redis for blacklisting
+redis_client = FlaskRedis(app)
+
 # Test Cloudinary configuration
 try:
     cloudinary.api.ping()
     print("Cloudinary configured successfully")
 except Exception as e:
     print(f"Error configuring Cloudinary: ", {e})
+
+# Test redis configuration
+try:
+    redis_client.ping()
+    print(f"Redis connection successful")
+except redis.AuthenticationError as e:
+    print(f"Redis authentication failed: {e}")
+except redis.ConnectionError as e:
+    print(f"Redis connection failed: {e}")
+except Exception as e:
+    print(f"An unexpected error occurred: {e}")
