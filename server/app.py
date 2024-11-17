@@ -3,7 +3,7 @@ from werkzeug.exceptions import HTTPException
 import cloudinary
 from flask import request
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt, get_jwt_identity, jwt_required
-from flask_jwt_extended.exceptions import RevokedTokenError
+from werkzeug.utils import secure_filename
 from flask_restful import Resource, reqparse
 from config import app, api, db, jwt, redis_client
 from models import Category, Comment, Like, Notification, Subscription, User, Post, Wishlist
@@ -26,17 +26,52 @@ class SignupResource(Resource):
         parser.add_argument('username', required=True, help='Username is required')
         parser.add_argument('email', required=True, help='Email is required')
         parser.add_argument('password', required=True, help='Password is required')
+        parser.add_argument('bio', required=True, help='Bio is required')
         data = parser.parse_args()
+
+        # Get the image file
+        profile_pic = request.files.get('profile_pic')
 
         # Check if user exists by email
         if User.query.filter_by(email=data['email']).first():
             return {"message": "User with this email already exists"}, 400
         
-        # Create a new user
-        new_user = User(username=data['username'], email=data['email'])
+        # Handle the image upload to Cloudinary if a file is provided
+        image_url = None
+        if profile_pic:
+            # Ensure the file is safe to use
+            filename = secure_filename(profile_pic.filename)
+
+            # Upload the image to Cloudinary
+            upload_result = cloudinary.uploader.upload(
+                profile_pic,
+                public_id=data['username'],  # Use username as the public ID
+                transformation=[
+                    {
+                        'crop': 'thumb', # Crop the image to a square
+                        'gravity': 'face', # Focus on the face if present
+                        'width': 200, # Width of the image
+                        'height': 200, # Height of the image
+                        'radius': 'max', # Apply circular transformation
+                    }
+                ]
+            )
+
+            # Get the URL of the uploaded image
+            image_url = upload_result['secure_url']
+
+        # Create a new user with the provided details
+        new_user = User(
+            username=data['username'],
+            email=data['email'],
+            bio=data['bio'],
+            profile_pic_url=image_url
+        )
 
         # Hashing handled by the password setter
         new_user.password = data['password']
+
+        # Add new user to session and commit
         db.session.add(new_user)
         db.session.commit()
 
