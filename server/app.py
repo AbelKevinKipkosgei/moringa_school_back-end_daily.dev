@@ -89,17 +89,19 @@ class LoginResource(Resource):
             # Find user by email
             user = User.query.filter_by(email=data['email']).first()
 
-        # Authenticate user
-        if not user or not user.authenticate(data['password']):
-            return {"message": "Invalid credentials"}, 401
+            # Authenticate user
+            if not user or not user.authenticate(data['password']):
+                return {"message": "Invalid credentials"}, 401
         
-        # Create JWT token
-        access_token = create_access_token(identity={"id": user.id, "role": user.role})
-        refresh_token = create_refresh_token(identity={"id": user.id, "role": user.role})
-        return {
-            'access_token': access_token,
-            'refresh_token': refresh_token
-        }, 200
+            # Create JWT token
+            access_token = create_access_token(identity={"id": user.id, "role": user.role})
+            refresh_token = create_refresh_token(identity={"id": user.id, "role": user.role})
+            return {
+                'access_token': access_token,
+                'refresh_token': refresh_token
+            }, 200
+        except Exception as e:
+            return {"error": str(e)}, 500
 
 # Refresh Token Resource
 class RefreshResource(Resource):
