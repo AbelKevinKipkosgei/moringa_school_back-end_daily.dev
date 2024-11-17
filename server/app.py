@@ -1,15 +1,18 @@
 from functools import wraps
+from werkzeug.exceptions import HTTPException
 import cloudinary
 from flask import request
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt, get_jwt_identity, jwt_required
+from flask_jwt_extended.exceptions import RevokedTokenError
 from flask_restful import Resource, reqparse
-from config import app, api, db, jwt
+from config import app, api, db, jwt, redis_client
 from models import Category, Comment, Like, Notification, Subscription, User, Post, Wishlist
 
 # Blacklist check for both access and refresh tokens
 @jwt.token_in_blocklist_loader
 def check_if_token_in_blacklist(jwt_header, jwt_payload):
-    return jwt_payload['jti'] in app.config['BLACKLIST']
+    jti = jwt_payload['jti']
+    return redis_client.get(jti) is not None
 
 # Home Resource
 class HomeResource(Resource):
@@ -42,25 +45,28 @@ class SignupResource(Resource):
 # Login Resource
 class LoginResource(Resource):
     def post(self):
-        parser = reqparse.RequestParser()
-        parser.add_argument('email', required=True, help='Email is required')
-        parser.add_argument('password', required=True, help='Password is required')
-        data = parser.parse_args()
+        try:
+            parser = reqparse.RequestParser()
+            parser.add_argument('email', required=True, help='Email is required')
+            parser.add_argument('password', required=True, help='Password is required')
+            data = parser.parse_args()
 
-        # Find user by email
-        user = User.query.filter_by(email=data['email']).first()
+            # Find user by email
+            user = User.query.filter_by(email=data['email']).first()
 
-        # Authenticate user
-        if not user or not user.authenticate(data['password']):
-            return {"message": "Invalid credentials"}, 401
-        
-        # Create JWT token
-        access_token = create_access_token(identity=user.id)
-        refresh_token = create_refresh_token(identity=user.id)
-        return {
-            'access_token': access_token,
-            'refresh_token': refresh_token
-        }, 200
+            # Authenticate user
+            if not user or not user.authenticate(data['password']):
+                return {"message": "Invalid credentials"}, 401
+            
+            # Create JWT token
+            access_token = create_access_token(identity=user.id)
+            refresh_token = create_refresh_token(identity=user.id)
+            return {
+                'access_token': access_token,
+                'refresh_token': refresh_token
+            }, 200
+        except Exception as e:
+            return {"error": str(e)}, 500
 
 # Refresh Token Resource
 class RefreshResource(Resource):
@@ -74,8 +80,16 @@ class RefreshResource(Resource):
 class LogoutResource(Resource):
     @jwt_required()
     def post(self):
+        # Get the jti (JWT ID) from the current JWT
         jti = get_jwt()['jti']
-        app.config['BLACKLIST'].add(jti)
+
+        # Check if the token is already blacklisted
+        if redis_client.get(jti):
+            return {"message": "Token already logged out"}, 400
+
+        # Add the JWT ID to the blacklist in Redis
+        redis_client.setex(jti, int(app.config['JWT_ACCESS_TOKEN_EXPIRES'].total_seconds()), 'true')
+
         return {"message": "Logged out successfully"}, 200
     
 # Admin Route to Get All Users
