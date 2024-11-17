@@ -23,6 +23,7 @@ alembic = "*"
 python-dotenv = "*"
 flask-jwt-extended = "*"
 cloudinary = "*"
+flask-redis = "*"
 
 [dev-packages]
 
