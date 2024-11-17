@@ -22,19 +22,28 @@ class HomeResource(Resource):
 # Signup Resource
 class SignupResource(Resource):
     def post(self):
-        parser = reqparse.RequestParser()
-        parser.add_argument('username', required=True, help='Username is required')
-        parser.add_argument('email', required=True, help='Email is required')
-        parser.add_argument('password', required=True, help='Password is required')
-        parser.add_argument('bio', required=True, help='Bio is required')
-        data = parser.parse_args()
-
-        # Get the image file
-        profile_pic = request.files.get('profile_pic')
+        # Parse form fields
+        username = request.form.get('username')
+        email = request.form.get('email')
+        password = request.form.get('password')
+        bio = request.form.get('bio')
+        profile_pic = request.files.get('profile_pic_url')
+        
+        # Validate required fields
+        if not all([username, email, password, bio]):
+            return {"message": "All fields are required"}, 400
+        
+        # Validate profile pic
+        if 'profile_pic_url' not in request.files:
+            return {"message": "Profile picture is missing"}, 400
 
         # Check if user exists by email
-        if User.query.filter_by(email=data['email']).first():
+        if User.query.filter_by(email=email).first():
             return {"message": "User with this email already exists"}, 400
+
+        # Check if username exists
+        if User.query.filter_by(username=username).first():
+            return {"message": "Username already exists"}, 400
         
         # Handle the image upload to Cloudinary if a file is provided
         image_url = None
@@ -45,7 +54,7 @@ class SignupResource(Resource):
             # Upload the image to Cloudinary
             upload_result = cloudinary.uploader.upload(
                 profile_pic,
-                public_id=data['username'],  # Use username as the public ID
+                public_id=username,  # Use username as the public ID
                 transformation=[
                     {
                         'crop': 'thumb', # Crop the image to a square
@@ -58,18 +67,18 @@ class SignupResource(Resource):
             )
 
             # Get the URL of the uploaded image
-            image_url = upload_result['secure_url']
+            image_url = upload_result.get('secure_url')
 
         # Create a new user with the provided details
         new_user = User(
-            username=data['username'],
-            email=data['email'],
-            bio=data['bio'],
+            username=username,
+            email=email,
+            bio=bio,
             profile_pic_url=image_url
         )
 
         # Hashing handled by the password setter
-        new_user.password = data['password']
+        new_user.password = password
 
         # Add new user to session and commit
         db.session.add(new_user)

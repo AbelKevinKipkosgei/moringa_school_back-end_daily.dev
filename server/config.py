@@ -45,7 +45,7 @@ jwt = JWTManager(app)
 api = Api(app)
 
 # Enable CORS globally
-CORS(app, supports_credentials=True)
+CORS(app, resources={r"/api/*": {"origins": ["http://localhost:4000"]}}, supports_credentials=True)
 
 # Initialize SQLAlchemy with app
 db.init_app(app)
