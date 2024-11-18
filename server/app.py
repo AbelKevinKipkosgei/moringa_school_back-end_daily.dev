@@ -226,6 +226,12 @@ class AdminDeletePostResource(Resource):
         db.session.commit()
 
         return {"message": "Post deleted successfully"}, 200
+    
+# Fetch all posts
+class FetchAllPostsResource(Resource):
+    def get(self):
+        posts = [post.to_dict() for post in Post.query.all()]
+        return {"posts": posts}, 200
 
 # User and Tech writer decorator   
 def user_techwriter_role_required(allowed_roles):
@@ -834,6 +840,7 @@ api.add_resource(AdminAllUsersResource, '/api/admin/users', endpoint='adminusers
 api.add_resource(AdminReactivateUserResource, '/api/admin/user/reactivate/<int:user_id>', endpoint='reactivateuser')
 api.add_resource(AdminDeactivateUserResource, '/api/admin/user/deactivate/<int:user_id>', endpoint='deactivateuser')
 api.add_resource(AdminDeletePostResource, '/api/admin/post/delete/<int:post_id>', endpoint='deletepost')
+api.add_resource(FetchAllPostsResource, '/api/allposts', endpoint='allposts')
 api.add_resource(CreatePost, '/api/posts/createpost', endpoint='createpost')
 api.add_resource(ReadPost, '/api/post/read/<int:post_id>', endpoint='read')
 api.add_resource(LikePost, '/api/post/like/<int:post_id>', endpoint='like')
