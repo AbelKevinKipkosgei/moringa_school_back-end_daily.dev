@@ -71,7 +71,7 @@ def seed_users_table():
                 {
                     'username': 'james_bond',
                     'email': 'jamesbond@gmail.com',
-                    'password': 'bond007',
+                    'password': 'jamesbond007',
                     'role': 'techwriter',
                     'profile_pic_url': 'https://cdn.pixabay.com/photo/2016/11/16/19/27/daniel-1829795_1280.jpg',
                     'bio': 'Call me bond',
