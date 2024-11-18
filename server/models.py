@@ -45,7 +45,7 @@ class User (db.Model, SerializerMixin):
     # Association proxy to access posts directly
     liked_posts = association_proxy('likes', 'post', creator=lambda post_obj: Wishlist(post=post_obj))
 
-    serialize_rules = ('-subscriptions.user', '-notifications.user', '-comments.user', '-likes.user', 'wishlist.user',)
+    serialize_rules = ('-subscriptions.user', '-notifications.user', '-comments.user', '-likes.user', '-wishlist.user',)
 
     # Password encryption
     @hybrid_property
@@ -187,7 +187,7 @@ class Post(db.Model, SerializerMixin):
     comments = db.relationship("Comment", back_populates="post", cascade='all, delete-orphan')
 
     # Many-to-many relationship with User via wishlist
-    wishlisted_by = db.relationship("Wishlist", back_populates="post", cascade='all, delete-orphan', lazy='dynamic')
+    wishlisted_by = db.relationship("Wishlist", back_populates="post", cascade='all, delete-orphan')
 
     # Association proxy for access to users who wishlisted the post
     wishlisted_by_users = association_proxy('wishlisted_by', 'user', creator=lambda user_obj: Wishlist(user=user_obj))
@@ -201,10 +201,13 @@ class Post(db.Model, SerializerMixin):
     @property
     def is_wishlist_by_user(self):
         user_id = get_jwt_identity()
+        if not user_id:
+            return False
+
         return any(wishlist.user_id == user_id for wishlist in self.wishlisted_by)
 
     # Serializer rules
-    serialize_only = ('id', 'title', 'post_type', 'thumbnail_url', 'media_url', 'body', 'created_at', 'updated_at', 'approved', 'flagged', 'likes_count', 'category.id', 'user.id', 'user.username', 'comments.id', 'comments.user_id', 'comments.body', 'comments.created_at', 'likes.id', 'likes.user_id', 'likes.post_id', 'likes.liked_at','wishlist_count', 'is_wishlisted_by_user',)
+    serialize_only = ('id', 'title', 'post_type', 'thumbnail_url', 'media_url', 'body', 'created_at', 'updated_at', 'approved', 'flagged', 'likes_count', 'category.id', 'user.id', 'user.username', 'comments.id', 'comments.user_id', 'comments.body', 'comments.created_at', 'likes.id', 'likes.user_id', 'likes.post_id', 'likes.liked_at','wishlist_count', 'is_wishlist_by_user',)
 
     # Notify when the post is liked
     def notify_on_like(self, liking_user):

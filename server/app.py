@@ -2,7 +2,7 @@ from functools import wraps
 from werkzeug.exceptions import HTTPException
 import cloudinary
 from flask import request
-from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt, get_jwt_identity, jwt_required
+from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt, get_jwt_identity, jwt_required, verify_jwt_in_request
 from werkzeug.utils import secure_filename
 from flask_restful import Resource, reqparse
 from config import app, api, db, jwt, redis_client
@@ -230,8 +230,28 @@ class AdminDeletePostResource(Resource):
 # Fetch all posts
 class FetchAllPostsResource(Resource):
     def get(self):
-        posts = [post.to_dict() for post in Post.query.all()]
-        return {"posts": posts}, 200
+        user_id = None
+        try:
+            # Attempt to verify the JWT in the request
+            verify_jwt_in_request(optional=True)
+            # Get the identity (User ID) from the JWT token
+            user_id = get_jwt_identity()
+        except Exception:
+            # If the JWT is invalid or missing, skip verification
+            pass
+
+        # Fetch all posts and serialize them
+        posts = Post.query.all()
+        serialized_posts = []
+
+        for post  in posts:
+            serialized_post = post.to_dict()
+            # Add 'is_wishlist_by_user' if user ID is provided
+            serialized_post['is_wishlist_by_user'] = (
+                post.is_wishlist_by_user if user_id else False
+            )
+            serialized_posts.append(serialized_post)
+        return {"posts": serialized_posts}, 200
 
 # User and Tech writer decorator   
 def user_techwriter_role_required(allowed_roles):
