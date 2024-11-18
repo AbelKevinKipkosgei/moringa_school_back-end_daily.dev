@@ -144,63 +144,83 @@ class AdminAllUsersResource(Resource):
         return {"users": users}, 200
 
 
-# Admin Route to Reactivate a Deactivated User
 class AdminReactivateUserResource(Resource):
     @jwt_required()
     def put(self, user_id):
-        # Get the identity (User ID) from th JWT token
-        current_user_id = get_jwt_identity()
+        # Get the identity (User ID) from the JWT token
+        current_user_info = get_jwt_identity()
+        current_user_id = current_user_info.get('id')
 
-        # Fetch the current user from the database
-        current_user = User.query.get(current_user_id)
+        if not current_user_id:
+            return {"message": "User ID is missing or invalid"}, 400
 
-        # Check if the current user is an admin
-        if current_user.role != 'admin':
+        try:
+            current_user_id = int(current_user_id)  # Ensure the ID is an integer
+        except ValueError:
+            return {"message": "Invalid user ID format"}, 400
+
+        # Fetch current user
+        current_user = db.session.get(User, current_user_id)
+        if not current_user:
+            return {"message": "Current user not found"}, 404
+
+        # Ensure current user is an admin
+        if current_user.role != "admin":
             return {"message": "Unauthorized access"}, 403
-        
-        # Fetch the user to be reactivated
-        user = User.query.get(user_id)
 
-        if not user:
+        # Fetch the user to reactivate
+        user_to_reactivate = db.session.get(User, user_id)
+        if not user_to_reactivate:
             return {"message": "User not found"}, 404
-        
-        if user.activated:
-            return {"message": "User is already active"}, 404
-        
+
+        # Check if the user is already active
+        if user_to_reactivate.activated:
+            return {"message": "User is already active"}, 400
+
         # Reactivate the user
-        user.activated = True
+        user_to_reactivate.activated = True
         db.session.commit()
 
-        return {"message": "User reactivated successfully"}, 200
+        return {"message": f"User {user_to_reactivate} reactivated successfully"}, 200
     
 class AdminDeactivateUserResource(Resource):
     @jwt_required()
     def put(self, user_id):
         # Get the identity (User ID) from the JWT token
-        current_user_id = get_jwt_identity()
+        current_user_info = get_jwt_identity()
+        current_user_id = current_user_info.get('id')
 
-        # Fetch the current user from the database
-        current_user = User.query.get(current_user_id)
+        if not current_user_id:
+            return {"message": "User ID is missing or invalid"}, 400
 
-        # Check if current user is an admin
-        if current_user.role != 'admin':
+        try:
+            current_user_id = int(current_user_id)  # Ensure the ID is an integer
+        except ValueError:
+            return {"message": "Invalid user ID format"}, 400
+
+        # Fetch current user
+        current_user = db.session.get(User, current_user_id)
+        if not current_user:
+            return {"message": "Current user not found"}, 404
+
+        # Ensure current user is an admin
+        if current_user.role != "admin":
             return {"message": "Unauthorized access"}, 403
-        
-        # Fetch the user to be deactivated
-        user = User.query.get(user_id)
-        
-        if not user:
+
+        # Fetch the user to deactivate
+        user_to_deactivate = db.session.get(User, user_id)
+        if not user_to_deactivate:
             return {"message": "User not found"}, 404
-        
-        if user.activated == False:
-            return {"message": "User is already deactivated"}, 404
-        
+
+        # Check if the user is already deactivated
+        if not user_to_deactivate.activated:
+            return {"message": "User is already deactivated"}, 400
+
         # Deactivate the user
-        user.activated = False
+        user_to_deactivate.activated = False
         db.session.commit()
 
-        return {"message": "User deactivated successfully"}, 200
-    
+        return {"message": f"User {user_to_deactivate} deactivated successfully"}, 200
 class AdminDeletePostResource(Resource):
     @jwt_required()
     def delete(self, post_id):
