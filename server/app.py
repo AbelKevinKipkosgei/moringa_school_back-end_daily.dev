@@ -246,7 +246,7 @@ class AdminDeletePostResource(Resource):
         db.session.commit()
 
         return {"message": "Post deleted successfully"}, 200
-    
+
 # Fetch all posts
 class FetchAllPostsResource(Resource):
     def get(self):
@@ -264,16 +264,17 @@ class FetchAllPostsResource(Resource):
         posts = Post.query.join(Category, Category.id == Post.category_id).all()
         serialized_posts = []
 
-        for post  in posts:
+        for post in posts:
             serialized_post = post.to_dict()
             # Add category name to the serialized post
             serialized_post['category'] = post.category.name
-            # Add 'is_wishlist_by_user' if user ID is provided
-            serialized_post['is_wishlist_by_user'] = (
-                post.is_wishlist_by_user if user_id else False
-            )
+            # Call the method explicitly with user_id
+            serialized_post['is_wishlist_by_user'] = post.is_wishlist_by_user(user_id) if user_id else False
             serialized_posts.append(serialized_post)
+
         return {"posts": serialized_posts}, 200
+
+
 
 # User and Tech writer decorator   
 def user_techwriter_role_required(allowed_roles):

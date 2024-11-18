@@ -197,17 +197,14 @@ class Post(db.Model, SerializerMixin):
     def wishlist_count(self):
         return len(self.wishlisted_by)
     
-    # Get the current user's ID from the JWT token
-    @property
-    def is_wishlist_by_user(self):
-        user_id = get_jwt_identity()
+    # New method to check wishlist status for a specific user
+    def is_wishlist_by_user(self, user_id):
         if not user_id:
             return False
-
         return any(wishlist.user_id == user_id for wishlist in self.wishlisted_by)
 
     # Serializer rules
-    serialize_only = ('id', 'title', 'post_type', 'thumbnail_url', 'media_url', 'body', 'created_at', 'updated_at', 'approved', 'flagged', 'likes_count', 'category.id', 'user.id', 'user.username', 'comments.id', 'comments.user_id', 'comments.body', 'comments.created_at', 'likes.id', 'likes.user_id', 'likes.post_id', 'likes.liked_at','wishlist_count', 'is_wishlist_by_user',)
+    serialize_only = ('id', 'title', 'post_type', 'thumbnail_url', 'media_url', 'body', 'created_at', 'updated_at', 'approved', 'flagged', 'likes_count', 'category.id', 'user.id', 'user.username', 'comments.id', 'comments.user_id', 'comments.user.username', 'comments.user.profile_pic_url', 'comments.body', 'comments.created_at', 'likes.id', 'likes.user_id', 'likes.post_id', 'likes.liked_at','wishlist_count',)
 
     # Notify when the post is liked
     def notify_on_like(self, liking_user):
