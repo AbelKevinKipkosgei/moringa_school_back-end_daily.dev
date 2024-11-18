@@ -241,11 +241,13 @@ class FetchAllPostsResource(Resource):
             pass
 
         # Fetch all posts and serialize them
-        posts = Post.query.all()
+        posts = Post.query.join(Category, Category.id == Post.category_id).all()
         serialized_posts = []
 
         for post  in posts:
             serialized_post = post.to_dict()
+            # Add category name to the serialized post
+            serialized_post['category'] = post.category.name
             # Add 'is_wishlist_by_user' if user ID is provided
             serialized_post['is_wishlist_by_user'] = (
                 post.is_wishlist_by_user if user_id else False
