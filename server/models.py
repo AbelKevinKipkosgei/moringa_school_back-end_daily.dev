@@ -47,6 +47,8 @@ class User (db.Model, SerializerMixin):
 
     serialize_rules = ('-subscriptions.user', '-notifications.user', '-comments.user', '-likes.user', '-wishlist.user',)
 
+    serialize_only = ('id', 'username', 'email', 'profile_pic_url', 'bio', 'created_at', 'updated_at', 'role')
+
     # Password encryption
     @hybrid_property
     def password(self):
@@ -110,40 +112,44 @@ class Comment(db.Model, SerializerMixin):
     serialize_rules = ('-user.comments','-post.comments')
 
     def serialize_with_pagination(self, page=1, per_page=10, current_depth=1, max_depth=3):
-        # Stop serialization if the max depth is reached
         if current_depth > max_depth:
-            return {'id': self.id, 'user_id': self.user_id, 'body': self.body, 'created_at': self.created_at, 'replies': []}
-        
-        # Get the paginated replies
-        paginated_replies = self.get_replies(page, per_page) if current_depth < max_depth else {'replies': []}
+            return None  # Stop if the max depth is exceeded
 
-        # Serialize the comment data
+        paginated_replies = self.get_replies(page, per_page, current_depth, max_depth)
+
         comment_data = {
             'id': self.id,
             'user_id': self.user_id,
             'body': self.body,
             'created_at': self.created_at,
+            'user': {
+                'username': self.user.username,
+                'profile_pic_url': self.user.profile_pic_url
+            },
             'replies': [
-                reply.serialize_with_pagination(1, per_page, current_depth + 1, max_depth)
-                for reply in paginated_replies['replies']
+                reply.serialize_with_pagination(page, per_page, current_depth + 1, max_depth)
+                for reply in paginated_replies['replies'] if reply is not None
             ],
             'pagination': {
-                'total_replies': paginated_replies['total_replies'],
-                'page': paginated_replies['page'],
-                'per_page': paginated_replies['per_page'],
-                'total_pages': paginated_replies['total_pages']
+                'total_replies': paginated_replies.get('total_replies', 0),
+                'page': paginated_replies.get('page', 1),
+                'per_page': paginated_replies.get('per_page', 10),
+                'total_pages': paginated_replies.get('total_pages', 1)
             }
         }
 
         return comment_data
-    
-    def get_replies(self, page=1, per_page=10):
-        # Fetch replies based on parent_comment_id
-        total_replies = db.session.query(func.count(Comment.id)).filter(Comment.parent_comment_id == self.id).scalar()
 
+    def get_replies(self, page=1, per_page=10, current_depth=1, max_depth=3):
+        if current_depth > max_depth:
+            return {'replies': [], 'total_replies': 0, 'page': page, 'per_page': per_page, 'total_pages': 0}
+
+        # Fetch replies for the current comment
+        total_replies = db.session.query(func.count(Comment.id)).filter(Comment.parent_comment_id == self.id).scalar()
         replies_query = Comment.query.filter_by(parent_comment_id=self.id).order_by(Comment.created_at)
 
-        paginated_replies = replies_query.paginate(page, per_page, False)
+        # Paginate the replies
+        paginated_replies = replies_query.paginate(page=page, per_page=per_page, error_out=False)
 
         return {
             'replies': paginated_replies.items,
@@ -202,9 +208,6 @@ class Post(db.Model, SerializerMixin):
         if not user_id:
             return False
         return any(wishlist.user_id == user_id for wishlist in self.wishlisted_by)
-
-    # Serializer rules
-    serialize_only = ('id', 'title', 'post_type', 'thumbnail_url', 'media_url', 'body', 'created_at', 'updated_at', 'approved', 'flagged', 'likes_count', 'category.id', 'user.id', 'user.username', 'comments.id', 'comments.user_id', 'comments.user.username', 'comments.user.profile_pic_url', 'comments.body', 'comments.created_at', 'likes.id', 'likes.user_id', 'likes.post_id', 'likes.liked_at','wishlist_count',)
 
     # Notify when the post is liked
     def notify_on_like(self, liking_user):
@@ -307,6 +310,65 @@ class Post(db.Model, SerializerMixin):
         )
         db.session.add(notification)
         db.session.commit()
+
+    # Serializer rules to avoid circular references
+    serialize_rules = ('-comments.post', '-user.posts', '-category.posts', '-likes.post')
+
+    def serialize_with_comments(self, page=1, per_page=10, max_depth=3):
+        # Get the paginated comments with controlled depth
+        paginated_comments = self.get_comments(page, per_page, max_depth)
+
+        # Serialize the post data
+        post_data = {
+            'id': self.id,
+            'title': self.title,
+            'post_type': self.post_type,
+            'thumbnail_url': self.thumbnail_url,
+            'media_url': self.media_url,
+            'body': self.body,
+            'created_at': self.created_at,
+            'updated_at': self.updated_at,
+            'approved': self.approved,
+            'flagged': self.flagged,
+            'likes_count': self.likes_count,
+            'category': self.category.name,  # Assuming category has a 'name' attribute
+            'user': {
+                'id': self.user.id,
+                'username': self.user.username,
+                'profile_pic_url': self.user.profile_pic_url
+            },
+            'comments': paginated_comments['comments'],  # Serialized comments
+            'pagination': {
+                'total_comments': paginated_comments['total_comments'],
+                'page': paginated_comments['page'],
+                'per_page': paginated_comments['per_page'],
+                'total_pages': paginated_comments['total_pages']
+            }
+        }
+
+        return post_data
+
+    def get_comments(self, page=1, per_page=10, max_depth=3):
+        # Query total comments count
+        total_comments = db.session.query(func.count(Comment.id)).filter(Comment.post_id == self.id).scalar()
+        
+        # Paginate the comments
+        comments_query = Comment.query.filter_by(post_id=self.id).order_by(Comment.created_at)
+        paginated_comments = comments_query.paginate(page=page, per_page=per_page, error_out=False)
+
+        # Serialize the comments
+        serialized_comments = [
+            comment.serialize_with_pagination(page, per_page, current_depth=1, max_depth=max_depth)
+            for comment in paginated_comments.items
+        ]
+
+        return {
+            'comments': serialized_comments,
+            'total_comments': total_comments,
+            'page': page,
+            'per_page': per_page,
+            'total_pages': paginated_comments.pages
+        }
 
 
     def __repr__(self):
