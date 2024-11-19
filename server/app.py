@@ -126,9 +126,13 @@ class LoginResource(Resource):
             # Create JWT token
             access_token = create_access_token(identity={"id": user.id, "role": user.role})
             refresh_token = create_refresh_token(identity={"id": user.id, "role": user.role})
+
+            # Return the tokens
             return {
                 'access_token': access_token,
-                'refresh_token': refresh_token
+                'refresh_token': refresh_token,
+                'role': user.role,
+                'userId': user.id
             }, 200
         except Exception as e:
             return {"error": str(e)}, 500
