@@ -1,3 +1,4 @@
+import datetime
 from functools import wraps
 from werkzeug.exceptions import HTTPException
 import cloudinary
@@ -7,12 +8,32 @@ from werkzeug.utils import secure_filename
 from flask_restful import Resource, reqparse
 from config import app, api, db, jwt, redis_client
 from models import Category, Comment, Like, Notification, Subscription, User, Post, Wishlist
+import datetime
+import json
 
 # Blacklist check for both access and refresh tokens
 @jwt.token_in_blocklist_loader
 def check_if_token_in_blacklist(jwt_header, jwt_payload):
     jti = jwt_payload['jti']
     return redis_client.get(jti) is not None
+
+# Custom JSONEncoder to handle datetime serialization
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime.datetime):
+            return obj.isoformat()  # Handle datetime serialization globally
+        return super().default(obj)
+    
+app.json_encoder = CustomJSONEncoder
+
+# If you're using Flask-RESTful's `output_json`, ensure it's using the custom encoder
+api.representations['application/json'] = lambda data, code, headers=None: (
+    app.response_class(
+        response=json.dumps(data, default=str),  # Use the custom encoder here
+        status=code,
+        mimetype='application/json'
+    )
+)
 
 # Home Resource
 class HomeResource(Resource):
@@ -375,7 +396,7 @@ class ReadPost(Resource):
         post = Post.query.get(post_id)
         if not post:
             return {"message": "Post not found"}, 404
-        return {"post": post.to_dict()}, 200
+        return {"post": post.serialize_with_comments(page=1, per_page=10, max_depth=3)}, 200
 
 # Like a post
 class LikePost(Resource):
