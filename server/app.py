@@ -2,6 +2,7 @@ import datetime
 from functools import wraps
 from werkzeug.exceptions import HTTPException
 import cloudinary
+from sqlalchemy.orm.exc import NoResultFound
 from flask import request
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt, get_jwt_identity, jwt_required, verify_jwt_in_request
 from werkzeug.utils import secure_filename
@@ -275,6 +276,7 @@ class AdminDeletePostResource(Resource):
 # Fetch all posts
 class FetchAllPostsResource(Resource):
     def get(self):
+        print("ALL Posts")
         user_id = None
         try:
             # Attempt to verify the JWT in the request
@@ -404,70 +406,79 @@ class ReadPost(Resource):
 
 # Like a post
 class LikePost(Resource):
-    @user_techwriter_role_required(['user', 'techwriter'])
+    @jwt_required()  # Protect this route with JWT authentication
     def post(self, post_id):
-        post = Post.query.get(post_id)
-        if not post:
+        # Get the current user's identity from the JWT token
+        user_info = get_jwt_identity()
+        user_id = user_info["id"]
+
+        try:
+            # Fetch the post by ID
+            post = Post.query.get_or_404(post_id)
+
+            # Check if the user has already liked the post
+            existing_like = Like.query.filter_by(post_id=post_id, user_id=user_id).first()
+
+            if existing_like:
+                # If the user has already liked the post, return a message
+                return {"message": "You have already liked this post"}, 400
+
+            # Create a new like record
+            new_like = Like(post_id=post_id, user_id=user_id)
+            db.session.add(new_like)
+            db.session.commit()
+
+            # Optionally, increment the like count on the post itself (if you store a like count on the post)
+            post.likes_count += 1
+            db.session.commit()
+
+            # Return a success message
+            return {"message": "Post liked successfully"}, 201
+
+        except NoResultFound:
+            # Handle case where the post doesn't exist
             return {"message": "Post not found"}, 404
-        
-        # Get the current user ID from JWT identity
-        user_id = get_jwt_identity()
-        liking_user = User.query.get(user_id)
-
-        if not liking_user:
-            return {"message": "User not found"}, 404
-
-        # Check whether the user has already like the post
-        existing_like = Like.query.filter_by(post_id=post_id, user_id=user_id).first()
-        if existing_like:
-            return {"message": "You have already liked this post"}, 400
-        
-        # Create a new like entry in the database
-        new_like = Like(post_id=post_id, user_id=user_id)
-        db.session.add(new_like)
-
-        # Increment the likes count on the post
-        post.likes_count += 1
-
-        # Notify the post author about the like
-        if post.user_id != liking_user.id:
-            post.notify_on_like(liking_user)
-        
-        db.session.commit()
-
-        return {"message": "Post liked", "likes_count": post.likes_count}, 200
+        except Exception as e:
+            # General error handling
+            return {"message": str(e)}, 500
     
 # Unlike a post
 class UnlikePost(Resource):
-    @user_techwriter_role_required(['user', 'techwriter'])
-    def delete(self, post_id):
-        post = Post.query.get(post_id)
-        if not post:
+    @jwt_required()  # Protect this route with JWT authentication
+    def post(self, post_id):
+        # Get the current user's identity from the JWT token
+        user_info = get_jwt_identity()
+        user_id = user_info["id"]
+
+        try:
+            # Fetch the post by ID
+            post = Post.query.get_or_404(post_id)
+
+            # Check if the user has liked the post
+            existing_like = Like.query.filter_by(post_id=post_id, user_id=user_id).first()
+
+            if not existing_like:
+                # If the user has not liked the post, return a message
+                return {"message": "You have not liked this post yet"}, 400
+
+            # Remove the like record
+            db.session.delete(existing_like)
+            db.session.commit()
+
+            # Optionally, decrement the like count on the post itself (if you store a like count on the post)
+            post.likes_count -= 1
+            db.session.commit()
+
+            # Return a success message
+            return {"message": "Post unliked successfully"}, 200
+
+        except NoResultFound:
+            # Handle case where the post doesn't exist
             return {"message": "Post not found"}, 404
-        
-        user_id = get_jwt_identity()
-        unliking_user = User.query.get(user_id)
+        except Exception as e:
+            # General error handling
+            return {"message": str(e)}, 500
 
-        if not unliking_user:
-            return {"message": "User not found"}, 404
-
-        # Check if the like exists
-        like = Like.query.filter_by(post_id=post_id, user_id=user_id).first()
-        if not like:
-            return {"message": "You have not liked this post"}, 400
-        
-        # Remove the like entry
-        db.session.delete(like)
-
-        # Decrement the likes count on the post
-        post.likes_count -= 1
-
-        # Remove the like notification
-        post.remove_like_notification(unliking_user)
-
-        db.session.commit()
-
-        return {"message": "Post unliked", "likes_count": post.likes_count}, 200
 
 
 # Comment on a post
