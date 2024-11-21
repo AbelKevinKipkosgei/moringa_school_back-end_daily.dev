@@ -240,7 +240,7 @@ class AdminDeactivateUserResource(Resource):
 
         # Check if the user is already deactivated
         if not user_to_deactivate.activated:
-            return {"message": "User is already deactivated"}, 400
+            return {"message": "User is already deactivated"}, 200
 
         # Deactivate the user
         user_to_deactivate.activated = False
@@ -253,6 +253,8 @@ class AdminDeletePostResource(Resource):
         # Get the identity (User ID) from the JWT token
         current_user_id = get_jwt_identity()
 
+        current_user_id = current_user_id.get('id') 
+
         # Fetch the current user from the database
         current_user = User.query.get(current_user_id)
 
@@ -261,6 +263,9 @@ class AdminDeletePostResource(Resource):
             return {"message": "Unauthorized access"}, 403
         
         post = Post.query.get(post_id)
+        # Delete associated comments
+        Comment.query.filter_by(post_id=post_id).delete()
+        db.session.commit()
 
         if not post:
             return {"message": "Post not found"}, 404
@@ -309,8 +314,9 @@ def user_techwriter_role_required(allowed_roles):
         @wraps(func)
         @jwt_required()
         def wrapper(*args, **kwargs):
-            user_identity = get_jwt_identity()
-            user = User.query.get(user_identity)
+            user_info = get_jwt_identity()
+            user_id = user_info["id"]
+            user = db.session.query(User).get(user_id)
             if not user or user.role not in allowed_roles:
                 return {"message": "Unauthorized access"}, 403
             return func(*args, **kwargs)
@@ -520,8 +526,9 @@ def admin_techwriter_role_required(allowed_roles):
         @wraps(func)
         @jwt_required()
         def wrapper(*args, **kwargs):
-            user_identity = get_jwt_identity()
-            user = User.query.get(user_identity)
+            user_info = get_jwt_identity()
+            user_id = user_info["id"]
+            user = db.session.query(User).get(user_id)
             if not user or user.role not in allowed_roles:
                 return {"message": "Unauthorized access"}, 403
             return func(*args, **kwargs)
@@ -547,7 +554,7 @@ class CategoryResource(Resource):
         return {
             "message": "Category created",
             "category": {"name": name, "description": description}
-        }, 201
+        }, 200
 
 # Approve a post
 class ApprovePost(Resource):
@@ -579,7 +586,7 @@ class FlagPost(Resource):
 
         reason = data['reason']
 
-        post = Post.query.get(post_id)
+        post = db.session.get(Post,post_id)
         if not post:
             return {"error": "Post not found"}, 404
         
@@ -592,7 +599,7 @@ class FlagPost(Resource):
 
             # Notify the user that their post was flagged
             flagging_user_id = get_jwt_identity()
-            flagging_user = User.query.get(flagging_user_id)
+            flagging_user = db.session.get(User, flagging_user_id)
 
             if not flagging_user:
                 return {"error": "User not found"}, 404
@@ -608,7 +615,7 @@ class FlagPost(Resource):
 class UnflagPost(Resource):
     @admin_techwriter_role_required(['admin', 'techwriter'])
     def post(self, post_id):
-        post = Post.query.get(post_id)
+        post = db.session.get(post_id)
         if not post:
             return {"error": "Post not found"}, 404
         
@@ -620,7 +627,7 @@ class UnflagPost(Resource):
             db.session.commit()
 
             flagging_user_id = get_jwt_identity()
-            flagging_user = User.query.get(flagging_user_id)
+            flagging_user = db.session.get(User, flagging_user_id)
 
             # Remove the notification when the post is unflagged
             post.remove_flag_notification(flagging_user)
