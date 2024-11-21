@@ -536,7 +536,7 @@ def admin_techwriter_role_required(allowed_roles):
         def wrapper(*args, **kwargs):
             user_info = get_jwt_identity()
             user_id = user_info["id"]
-            user = User.query.get(user_id)
+            user = db.session.get(User,user_id)
             if not user or user.role not in allowed_roles:
                 return {"message": "Unauthorized access"}, 403
             return func(*args, **kwargs)
@@ -623,7 +623,7 @@ class FlagPost(Resource):
 class UnflagPost(Resource):
     @admin_techwriter_role_required(['admin', 'techwriter'])
     def post(self, post_id):
-        post = db.session.get(post_id)
+        post = db.session.get(Post,post_id)
         if not post:
             return {"error": "Post not found"}, 404
         
