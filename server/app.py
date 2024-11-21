@@ -606,7 +606,7 @@ class FlagPost(Resource):
             db.session.commit()
 
             # Notify the user that their post was flagged
-            flagging_user_id = get_jwt_identity()
+            flagging_user_id = get_jwt_identity()['id']
             flagging_user = db.session.get(User, flagging_user_id)
 
             if not flagging_user:
@@ -634,7 +634,7 @@ class UnflagPost(Resource):
             post.flagged = False
             db.session.commit()
 
-            flagging_user_id = get_jwt_identity()
+            flagging_user_id = get_jwt_identity()['id']
             flagging_user = db.session.get(User, flagging_user_id)
 
             # Remove the notification when the post is unflagged
