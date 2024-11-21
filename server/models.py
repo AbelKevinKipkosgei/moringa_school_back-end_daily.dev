@@ -47,7 +47,7 @@ class User (db.Model, SerializerMixin):
 
     serialize_rules = ('-subscriptions.user', '-notifications.user', '-comments.user', '-likes.user', '-wishlist.user',)
 
-    serialize_only = ('id', 'username', 'email', 'profile_pic_url', 'bio', 'created_at', 'updated_at', 'role')
+    serialize_only = ('id', 'username', 'email', 'profile_pic_url', 'bio', 'created_at', 'updated_at', 'role', 'activated')
 
     # Password encryption
     @hybrid_property
