@@ -1,5 +1,6 @@
 import datetime
 from functools import wraps
+from sqlalchemy import desc
 from werkzeug.exceptions import HTTPException
 import cloudinary
 from sqlalchemy.orm.exc import NoResultFound
@@ -316,91 +317,112 @@ def user_techwriter_role_required(allowed_roles):
         def wrapper(*args, **kwargs):
             user_info = get_jwt_identity()
             user_id = user_info["id"]
-            user = db.session.query(User).get(user_id)
+            user = User.query.get(user_id)
             if not user or user.role not in allowed_roles:
                 return {"message": "Unauthorized access"}, 403
             return func(*args, **kwargs)
         return wrapper
     return decorator
 
-# Create a post        
 class CreatePost(Resource):
     @user_techwriter_role_required(['user', 'techwriter'])
     def post(self):
-        parser = reqparse.RequestParser()
-        parser.add_argument("title", required=True, help="Title is required")
-        parser.add_argument("body", required=True, help="Body is required")
-        parser.add_argument("category", required=True, help="Category is required")
-        parser.add_argument("post_type", required=True, choices=['video', 'audio', 'blog'])
-        data = parser.parse_args()
+        # Parse incoming data from request.form
+        title = request.form.get('title')
+        body = request.form.get('body')
+        category_name = request.form.get('category')
+        post_type = request.form.get('post_type')
 
-        title=data['title']
-        body=data['body']
-        category_name=data['category']
-        post_type=data['post_type']
+        # Validate required fields
+        if not title or not body or not category_name or not post_type:
+            return {"error": {"message": "All fields (title, body, category, post_type) are required"}}, 400
+        
+        # Validate post_type
+        if post_type not in ['video', 'audio', 'blog']:
+            return {"error": {"message": "Invalid post_type", "field": "post_type"}}, 400
 
-        # Check if the category exists
+        # Validate category
         category = Category.query.filter_by(name=category_name).first()
         if not category:
-            return {"message": "Category not found"}, 404
-        
-        # Handle file upload to cloudinary for thumbnails
+            return {"error": {"message": "Category not found", "field": "category"}}, 404
+
+        # Handle thumbnail upload from request.files
         file = request.files.get('thumbnail')
-        if not file:
-            return {"message": "Thumbnail is required"}, 400
-        
+        if not file or not file.content_type.startswith("image/"):
+            return {"error": {"message": "Valid thumbnail (image) is required", "field": "thumbnail"}}, 400
+
+        # Upload thumbnail to Cloudinary
         try:
             upload_result = cloudinary.uploader.upload(
                 file,
                 folder='thumbnails',
-                transformation=[
-                    {
-                        'width': 300,
-                        'height': 300,
-                        'crop': 'thumb',
-                        'radius': 20
-                    }
-                ]
+                transformation=[{'width': 300, 'height': 300, 'crop': 'thumb', 'radius': 20}]
             )
             thumbnail_url = upload_result['secure_url']
         except Exception as e:
-            return {"message": f"Failed to upload thumbnail: {e}"}, 500
-    
-        # Handle video/audio upload to cloudinary
+            return {"error": {"message": f"Failed to upload thumbnail: {str(e)}"}}, 500
+
+        # Handle media file upload for video/audio
         media_url = None
         if post_type in ['video', 'audio']:
             media_file = request.files.get('media_file')
-            if not media_file:
-                return {"message": "Media file is required"}, 400
+            if not media_file or not media_file.content_type.startswith(post_type):
+                return {"error": {"message": f"Valid {post_type} file is required", "field": "media_file"}}, 400
+
             try:
-                if post_type == 'video':
-                    upload_result = cloudinary.uploader.upload(
-                        media_file,
-                        resource_type='video' if post_type == 'video' else 'raw',
-                        folder=f'media/{post_type}'
-                    )
+                upload_result = cloudinary.uploader.upload(
+                    media_file,
+                    resource_type='video' if post_type == 'video' else 'raw',
+                    folder=f'media/{post_type}'
+                )
                 media_url = upload_result['secure_url']
             except Exception as e:
-                return {"message": f"Failed to upload media: {e}"}, 500
-        
-        
-        user_identity = get_jwt_identity()
+                return {"error": {"message": f"Failed to upload media: {str(e)}"}}, 500
+
+        # Get user from JWT identity
+        user_info = get_jwt_identity()
+        user_id = user_info["id"]
+
+        # Check if the user exists
+        user = User.query.get(user_id)
+        if not user:
+            return {"error": {"message": "User not found"}}, 404
+
+        # Create new post
         new_post = Post(
             title=title,
             body=body,
             post_type=post_type,
             thumbnail_url=thumbnail_url,
             media_url=media_url,
-            user_id=user_identity,
+            user_id=user_id,
             category_id=category.id
         )
-        db.session.add(new_post)
-        db.session.commit()
 
-        # Notify category subscribers about the post
+        # Save post to the database
+        try:
+            db.session.add(new_post)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            return {"error": {"message": f"Database error: {str(e)}"}}, 500
+
+        # Notify category subscribers
         new_post.notify_category_subscribers()
 
-        return {"message": "Post created successfully", "post": new_post.id}, 201
+        # Return the created post response
+        return {
+            "message": "Post created successfully",
+            "post": {
+                "id": new_post.id,
+                "title": new_post.title,
+                "category": category_name,
+                "post_type": post_type,
+                "thumbnail_url": thumbnail_url,
+                "media_url": media_url
+            }
+        }, 201
+
 
 # Read a post 
 class ReadPost(Resource):
@@ -410,8 +432,8 @@ class ReadPost(Resource):
             return {"message": "Post not found"}, 404
         return {"post": post.serialize_with_comments(page=1, per_page=10, max_depth=3)}, 200
 
-# Like a post
-class LikePost(Resource):
+# Like or unlike a post
+class LikeTogglePost(Resource):
     @jwt_required()  # Protect this route with JWT authentication
     def post(self, post_id):
         # Get the current user's identity from the JWT token
@@ -426,57 +448,23 @@ class LikePost(Resource):
             existing_like = Like.query.filter_by(post_id=post_id, user_id=user_id).first()
 
             if existing_like:
-                # If the user has already liked the post, return a message
-                return {"message": "You have already liked this post"}, 400
+                # If the user has already liked the post, unlike it
+                db.session.delete(existing_like)
+                post.likes_count -= 1
+                is_liked = False
+                message = "Post unliked successfully"
+            else:
+                # If the user has not liked the post, like it
+                new_like = Like(post_id=post_id, user_id=user_id)
+                db.session.add(new_like)
+                post.likes_count += 1
+                is_liked = True
+                message = "Post liked successfully"
 
-            # Create a new like record
-            new_like = Like(post_id=post_id, user_id=user_id)
-            db.session.add(new_like)
-            db.session.commit()
-
-            # Optionally, increment the like count on the post itself (if you store a like count on the post)
-            post.likes_count += 1
-            db.session.commit()
-
-            # Return a success message
-            return {"message": "Post liked successfully"}, 201
-
-        except NoResultFound:
-            # Handle case where the post doesn't exist
-            return {"message": "Post not found"}, 404
-        except Exception as e:
-            # General error handling
-            return {"message": str(e)}, 500
-    
-# Unlike a post
-class UnlikePost(Resource):
-    @jwt_required()  # Protect this route with JWT authentication
-    def post(self, post_id):
-        # Get the current user's identity from the JWT token
-        user_info = get_jwt_identity()
-        user_id = user_info["id"]
-
-        try:
-            # Fetch the post by ID
-            post = Post.query.get_or_404(post_id)
-
-            # Check if the user has liked the post
-            existing_like = Like.query.filter_by(post_id=post_id, user_id=user_id).first()
-
-            if not existing_like:
-                # If the user has not liked the post, return a message
-                return {"message": "You have not liked this post yet"}, 400
-
-            # Remove the like record
-            db.session.delete(existing_like)
-            db.session.commit()
-
-            # Optionally, decrement the like count on the post itself (if you store a like count on the post)
-            post.likes_count -= 1
             db.session.commit()
 
             # Return a success message
-            return {"message": "Post unliked successfully"}, 200
+            return {"isLiked": is_liked,"message": message}, 200
 
         except NoResultFound:
             # Handle case where the post doesn't exist
@@ -485,40 +473,60 @@ class UnlikePost(Resource):
             # General error handling
             return {"message": str(e)}, 500
 
-
-
-# Comment on a post
+# Add a comment to a post
 class CommentPost(Resource):
-    @user_techwriter_role_required(['user', 'techwriter'])
+    @jwt_required()
     def post(self, post_id):
         # Check if the post exists
         post = Post.query.get(post_id)
         if not post:
             return {"message": "Post not found"}, 404
-        
+
         # Get comment data from request
         data = request.get_json()
-        comment_body = data.get("comment")
+        comment_body = data.get("body")  # 'body' for the comment
+
         if not comment_body:
             return {"message": "Comment body is required"}, 400
-        
-        # Get user identity from the JWT token
-        user_identity = get_jwt_identity()
-        commenting_user = User.query.get(user_identity)
+
+        # Extract user_id from the JWT token
+        user_info = get_jwt_identity()
+
+        user_id = user_info['id']
 
         # Create the new comment
-        new_comment = Comment(body=comment_body, user_id=user_identity, post_id=post.id)
+        new_comment = Comment(body=comment_body, post_id=post_id, user_id=user_id)  # Associate user_id with the comment
         db.session.add(new_comment)
         db.session.commit()
 
-        # Notify the post author about the new comment
-        if post.user_id != commenting_user.id:
-            post.notify_on_comment(commenting_user, new_comment)
+        # Get pagination parameters
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
 
+        # Paginate comments for the post
+        comments_query = Comment.query.filter_by(post_id=post_id).order_by(desc(Comment.created_at))
+        paginated_comments = comments_query.paginate(page=page, per_page=per_page, error_out=False)
+
+        # Serialize the comments with replies
+        serialized_comments = [
+            comment.serialize_with_pagination(page, per_page)
+            for comment in paginated_comments.items
+        ]
+
+        # Return the new comment and updated list of comments with pagination
         return {
             "message": "Comment added successfully",
-            "comment_id": new_comment.id,
+            "new_comment": new_comment.id,
+            "comments": serialized_comments,
+            "pagination": {
+                "total_comments": paginated_comments.total,
+                "page": page,
+                "per_page": per_page,
+                "total_pages": paginated_comments.pages
+            }
         }, 200
+
+
 
 # Admin and Tech writer decorator
 def admin_techwriter_role_required(allowed_roles):
@@ -528,7 +536,7 @@ def admin_techwriter_role_required(allowed_roles):
         def wrapper(*args, **kwargs):
             user_info = get_jwt_identity()
             user_id = user_info["id"]
-            user = db.session.query(User).get(user_id)
+            user = User.query.get(user_id)
             if not user or user.role not in allowed_roles:
                 return {"message": "Unauthorized access"}, 403
             return func(*args, **kwargs)
@@ -692,8 +700,9 @@ def user_role_required(allowed_roles):
         @wraps(func)
         @jwt_required()
         def wrapper(*args, **kwargs):
-            user_identity = get_jwt_identity()
-            user = User.query.get(user_identity)
+            user_info = get_jwt_identity()
+            user_id = user_info['id']
+            user = User.query.get(user_id)
             if not user or user.role not in allowed_roles:
                 return {"message": "Unauthorized access"}, 403
             return func(*args, **kwargs)
@@ -788,90 +797,43 @@ class UnsubscribeCategory(Resource):
             "message": f"User '{user.username}' successfully unsubscribed from category '{category.name}'"
         }, 200
     
-# Add post to wishlist
-class AddToWishlist(Resource):
-    @user_role_required(['user'])
+
+# Toggle wishlist route
+class WishlistTogglePost(Resource):
+    @jwt_required()  # Protect this route with JWT authentication
     def post(self, post_id):
-        # Get the currently logged-in user
-        user_identity = get_jwt_identity()
-        user = User.query.get(user_identity)
+        # Get the current user's identity from the JWT token
+        user_info = get_jwt_identity()
+        user_id = user_info["id"]
 
-        if not user:
-            return {"error": "User not found"}, 404
+        try:
+            # Fetch the post by ID
+            post = Post.query.get_or_404(post_id)
 
-        # Check if the post exists
-        post = Post.query.get(post_id)
-        if not post:
-            return {"error": "Post not found"}, 404
+            # Check if the post is already in the user's wishlist
+            existing_wishlist_item = Wishlist.query.filter_by(post_id=post_id, user_id=user_id).first()
 
-        # Check if the post is already in the user's wishlist
-        existing_wishlist_item = Wishlist.query.filter_by(user_id=user.id, post_id=post_id).first()
-        if existing_wishlist_item:
-            return {
-                "message": f"Post '{post.title}' is already in the wishlist of user '{user.username}'"
-            }, 200
+            if existing_wishlist_item:
+                # If the post is already in the wishlist, remove it
+                db.session.delete(existing_wishlist_item)
+                is_in_wishlist = False
+                message = "Post removed from wishlist successfully"
+            else:
+                # If the post is not in the wishlist, add it
+                new_wishlist_item = Wishlist(post_id=post_id, user_id=user_id)
+                db.session.add(new_wishlist_item)
+                is_in_wishlist = True
+                message = "Post added to wishlist successfully"
 
-        # Add the post to the wishlist
-        wishlist_item = Wishlist(user_id=user.id, post_id=post_id)
-        db.session.add(wishlist_item)
-        db.session.commit()
+            db.session.commit()
 
-        # Notify the post author about the wishlist addition
-        if post.user_id != user.id:
-            post.notify_on_wishlist(user)
+            # Return a success message
+            return {"isInWishlist": is_in_wishlist, "message": message}, 200
 
-        # Return the newly added wishlist item
-        return {
-            "message": f"Post '{post.title}' added to wishlist for user '{user.username}'",
-            "wishlist_item": {
-                "id": wishlist_item.id,
-                "user": {
-                    "id": user.id,
-                    "username": user.username
-                },
-                "post": {
-                    "id": post.id,
-                    "title": post.title,
-                    "thumbnail_url": post.thumbnail_url
-                }
-            }
-        }, 201
+        except Exception as e:
+            # General error handling
+            return {"message": str(e)}, 500
 
-# Remove post from wishlist
-class RemoveFromWishlist(Resource):
-    @user_role_required(['user'])
-    def delete(self, post_id):
-        # Get the currently logged-in user
-        user_identity = get_jwt_identity()
-        user = User.query.get(user_identity)
-
-        if not user:
-            return {"error": "User not found"}, 404
-
-        # Check if the post exists
-        post = Post.query.get(post_id)
-        if not post:
-            return {"error": "Post not found"}, 404
-
-        # Check if the post is in the user's wishlist
-        wishlist_item = Wishlist.query.filter_by(user_id=user.id, post_id=post_id).first()
-        if not wishlist_item:
-            return {
-                "message": f"Post '{post.title}' is not in the wishlist of user '{user.username}'"
-            }, 404
-
-        # Remove the post from the wishlist
-        db.session.delete(wishlist_item)
-        db.session.commit()
-
-        # Notify the post author about the wishlist removal
-        if post.user_id != user.id:
-            post.remove_wishlist_notification(user)
-
-        # Return a success message
-        return {
-            "message": f"Post '{post.title}' removed from wishlist for user '{user.username}'"
-        }, 200
 
 # Fetch paginated user notifications
 class GetNotifications(Resource):
@@ -929,8 +891,7 @@ api.add_resource(AdminDeletePostResource, '/api/admin/post/delete/<int:post_id>'
 api.add_resource(FetchAllPostsResource, '/api/allposts', endpoint='allposts')
 api.add_resource(CreatePost, '/api/posts/createpost', endpoint='createpost')
 api.add_resource(ReadPost, '/api/post/read/<int:post_id>', endpoint='read')
-api.add_resource(LikePost, '/api/post/like/<int:post_id>', endpoint='like')
-api.add_resource(UnlikePost, '/api/post/unlike/<int:post_id>', endpoint='unlike')
+api.add_resource(LikeTogglePost, '/api/post/likeunlike/<int:post_id>', endpoint='likeunlike')
 api.add_resource(CommentPost, '/api/post/comment/<int:post_id>', endpoint='comment')
 api.add_resource(CategoryResource, '/api/categories/createcategory', endpoint='createcategory')
 api.add_resource(ApprovePost, '/api/posts/approve/<int:post_id>', endpoint='approve')
@@ -939,8 +900,7 @@ api.add_resource(UnflagPost, '/api/posts/unflag/<int:post_id>', endpoint='unflag
 api.add_resource(EditPost, '/api/posts/edit/<int:post_id>', endpoint='editpost')
 api.add_resource(SubscribeCategory, '/api/category/subscribe/<int:category_id>', endpoint='subscribecategory')
 api.add_resource(UnsubscribeCategory, '/api/category/unsubscribe/<int:category_id>', endpoint='unsubscribecategory')
-api.add_resource(AddToWishlist, '/api/post/addtowishlist/<int:post_id>', endpoint='addtowishlist')
-api.add_resource(RemoveFromWishlist, '/api/post/removefromwishlist/<int:post_id>', endpoint='removefromwishlist')
+api.add_resource(WishlistTogglePost, '/api/post/wishlisttoggle/<int:post_id>')
 api.add_resource(GetNotifications, '/api/getnotifications', endpoint='getnotifications')
 
 
