@@ -49,6 +49,7 @@ def seed_users_table():
                     'profile_pic_url': 'https://cdn.pixabay.com/photo/2020/01/07/23/01/sketch-4748895_1280.jpg',
                     'bio': 'Cybersecurity Enthusiast and Tech savvy',
                     'categories': [frontend, backend, devops]
+                    
                 },
                 {
                     'username': 'jane_smith',
@@ -58,6 +59,7 @@ def seed_users_table():
                     'profile_pic_url': 'https://cdn.pixabay.com/photo/2016/06/17/09/54/woman-1462986_1280.jpg',
                     'bio': 'This is Jane Smith',
                     'categories': [data_science, machine_learning]
+                    
                 },
                 {
                     'username': 'john_doe',
@@ -67,6 +69,7 @@ def seed_users_table():
                     'profile_pic_url': 'https://cdn.pixabay.com/photo/2018/10/15/16/16/man-3749344_1280.jpg',
                     'bio': 'Tech writer and enthusiast',
                     'categories': [fullstack]
+                    
                 },
                 {
                     'username': 'james_bond',
@@ -76,6 +79,7 @@ def seed_users_table():
                     'profile_pic_url': 'https://cdn.pixabay.com/photo/2016/11/16/19/27/daniel-1829795_1280.jpg',
                     'bio': 'Call me bond',
                     'categories': [fullstack, backend, devops]
+                    
                 },
                 {
                     'username': 'sandra_bullock',
@@ -85,6 +89,7 @@ def seed_users_table():
                     'profile_pic_url': 'https://cdn.pixabay.com/photo/2020/11/26/13/57/sandra-bullock-5779099_960_720.png',
                     'bio': 'This is Sandra bullock',
                     'categories': [data_science, devops]
+                    
                 },
                 {
                     'username': 'felicity_jones',
@@ -94,6 +99,7 @@ def seed_users_table():
                     'profile_pic_url': 'https://cdn.pixabay.com/photo/2017/02/01/10/43/felicity-jones-2029557_1280.png',
                     'bio': 'This is Felicity Jones',
                     'categories': [machine_learning, devops]
+                    
                 },
                 {
                     'username': 'audrey_hepburn',
@@ -103,6 +109,7 @@ def seed_users_table():
                     'profile_pic_url': 'https://cdn.pixabay.com/photo/2018/03/29/11/55/audrey-hepburn-3272062_1280.png',
                     'bio': 'This is Audrey Hepburn',
                     'categories': [fullstack, frontend]
+                    
                 }
             ]
 
@@ -133,7 +140,8 @@ def seed_users_table():
                         email=user_data['email'],
                         role=user_data['role'],
                         profile_pic_url=image_url,
-                        bio=user_data['bio']
+                        bio=user_data['bio'],
+                        
                     )
 
                     # Hash password
