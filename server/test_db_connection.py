@@ -17,7 +17,7 @@ def test_connection():
         # Attempt to connect to the database
         with app.app_context():
             db.create_all()
-            print("Connection to the database was successful.")
+            print("Connection to the database was successful !!")
     except Exception as e:
         print("An error occurred while connecting to the database:")
         print(e)
