@@ -114,7 +114,18 @@ def seed_posts_table():
                     "category": machine_learning,
                     "likes_count": 25,
                     "media_url": "https://woolyss.com/f/av1-opus-sita.webm"
-                } 
+                },
+                {
+                    "title": "Django for Backend Development",
+                    "post_type": "blog",
+                    "thumbnail_url": "https://i.pinimg.com/736x/b0/da/e6/b0dae6377ba06571698026012043f122.jpg",
+                    "body": "What is Lorem Ipsum Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
+                    "approved": True,
+                    "user": user3,
+                    "category": backend,
+                    "likes_count": 50,
+                    "media_url": None
+                }
             ]
 
             # Add each post to the session
