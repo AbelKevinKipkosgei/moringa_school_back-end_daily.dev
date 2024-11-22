@@ -44,8 +44,8 @@ jwt = JWTManager(app)
 # Initialize Flask-Restful API
 api = Api(app)
 
-# Enable CORS globally
-CORS(app, resources={r"/api/*": {"origins": ["http://localhost:4000"]}}, supports_credentials=True)
+# Enable CORS for specific routes and origins (local and Vercel)
+CORS(app, resources={r"/api/*": {"origins": ["http://localhost:4000", "https://moringa-school-front-end-daily-dev.vercel.app"]}}, supports_credentials=True)
 
 # Initialize SQLAlchemy with app
 db.init_app(app)
