@@ -134,7 +134,8 @@ class LoginResource(Resource):
                 'access_token': access_token,
                 'refresh_token': refresh_token,
                 'role': user.role,
-                'userId': user.id
+                'userId': user.id,
+                'profilePicture': user.profile_pic_url
             }, 200
         except Exception as e:
             return {"error": str(e)}, 500
@@ -877,6 +878,21 @@ class GetNotifications(Resource):
             }
         }, 200
 
+class UserResource(Resource):
+    def get(self, user_id):
+        user = User.query.get(user_id)
+        if not user:
+            return {"error": "User not found"}, 404
+        return {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "role": user.role,
+            "bio": user.bio,
+            "profile_pic_url": user.profile_pic_url,
+            "created_at": user.created_at.isoformat(),
+            "updated_at": user.updated_at.isoformat(),
+        }
 
 # Resource routes
 api.add_resource(HomeResource, '/api', endpoint='home')
@@ -902,6 +918,7 @@ api.add_resource(SubscribeCategory, '/api/category/subscribe/<int:category_id>',
 api.add_resource(UnsubscribeCategory, '/api/category/unsubscribe/<int:category_id>', endpoint='unsubscribecategory')
 api.add_resource(WishlistTogglePost, '/api/post/wishlisttoggle/<int:post_id>')
 api.add_resource(GetNotifications, '/api/getnotifications', endpoint='getnotifications')
+api.add_resource(UserResource, '/api/users/<int:user_id>')
 
 
 if __name__ == "__main__":
